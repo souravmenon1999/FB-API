@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Facebook Node Authentication</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.5/css/materialize.min.css">
+    <style>
+        .card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+            margin-bottom: 54px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="light-blue lighten-1" role="navigation">
+        <div class="nav-wrapper container">
+            <a id="logo-container" href="#" class="brand-logo">Node Authentication</a>
+            <a href="/logout" class="right">Logout</a>
+        </div>
+    </nav>
+    <div class="section no-pad-bot" id="index-banner">
+        <div class="container">
+            <br><br>
+            <div class="row center">
+                <div class="col s12">
+                    <div class="card">
+                        <div class="card-content blue lighten-3">
+                            <span class="card-title white-text"><strong><i class="large material-icons">person</i>
+                                </strong></span>
+                        </div>
+                        <div class="card-action">
+                            <h5><b><%= user.displayName %></b></h5>
+                            <p><strong>Facebook id</strong>: <%= user.id %></p>
+
+                            <!-- Fetch Insights button -->
+                            <button onclick="loginAndRequestPermissions()" class="waves-effect waves-light btn">Fetch
+                                Insights</button>
+
+                            <!-- Display Insights if available -->
+                            <% if (typeof insights !== 'undefined') { %>
+                            <h5>Facebook Insights Data:</h5>
+                            <textarea readonly style="width: 100%; height: 400px;"><%= insights %></textarea>
+                            <% } %>
+
+                            <!-- Container to display insights data from JavaScript function -->
+                            <div id="insightsData"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Facebook SDK Initialization and Insights Fetching -->
+    <script>
+        // Facebook SDK initialization
+        window.fbAsyncInit = function() {
+            console.log("Initializing Facebook SDK...");
+
+            FB.init({
+                appId: '',
+                
+                xfbml: true,
+                version: 'v17.0'
+            });
+
+            FB.AppEvents.logPageView();
+            console.log("Facebook SDK initialized.");
+        };
+
+        // Loading the Facebook SDK script
+        (function(d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) return;
+            js = d.createElement(s); js.id = id;
+            js.src = "https://connect.facebook.net/en_US/sdk.js";
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+
+        function loginAndRequestPermissions() {
+            FB.login(function(response) {
+                if (response.authResponse) {
+                    fetchManagedPages();
+                    console.log('seeking permission');
+                }
+            }, { scope: 'manage_pages,read_insights,pages_read_engagement' });
+        }
+
+        function fetchManagedPages() {
+            FB.api('/me/accounts', function(response) {
+                if (response.data && response.data.length > 0) {
+                    const pageAccessToken = response.data[0].access_token;
+                    const pageId = response.data[0].id;
+                    fetchPageInsights(pageId, pageAccessToken);
+                }
+            });
+        }
+
+        function fetchPageInsights(pageId, pageAccessToken) {
+            FB.api(`/${pageId}/insights/page_fans_online?access_token=${pageAccessToken}`, function(response) {
+                if (response && !response.error) {
+                    console.log("Fetched Insights successfully:", response);
+                    document.getElementById('insightsData').innerText = JSON.stringify(response);
+                } else {
+                    console.error("Error fetching Insights:", response.error);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
